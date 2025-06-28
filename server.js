@@ -21,6 +21,7 @@ app.post('/apply', upload.single('resume'), async (req, res) => {
     specialization,
     experience,
     jobTitle,
+    linkedin,
   } = req.body;
 
   const resume = req.file;
@@ -36,6 +37,7 @@ app.post('/apply', upload.single('resume'), async (req, res) => {
       Qualification: ${qualification}
       Specialization: ${specialization}
       Experience: ${experience}
+      linkedin: ${linkedin}
     `,
     attachments: resume
       ? [
