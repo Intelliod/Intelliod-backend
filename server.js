@@ -2,15 +2,22 @@ const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
 const fs = require('fs');
-const sgMail = require('@sendgrid/mail');
+const path = require('path');
 require('dotenv').config();
+
+const SibApiV3Sdk = require('sib-api-v3-sdk');
+
+// Setup Brevo API
+const defaultClient = SibApiV3Sdk.ApiClient.instance;
+defaultClient.authentications['api-key'].apiKey = process.env.BREVO_API_KEY;
+const emailApi = new SibApiV3Sdk.TransactionalEmailsApi();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-
 app.use(cors());
+app.use(express.json());
+
 const upload = multer({ dest: 'uploads/' });
 
 app.post('/apply', upload.single('resume'), async (req, res) => {
@@ -26,57 +33,62 @@ app.post('/apply', upload.single('resume'), async (req, res) => {
 
   const resume = req.file;
 
-  const adminMsg = {
-    to: 'yaswanth.intelliod@gmail.com', // Admin Email
-    from: 'yaswanth.intelliod@gmail.com', // Must be verified in SendGrid
-    subject: `New Application: ${jobTitle} - ${name}`,
-    text: `
-      Job Title: ${jobTitle}
-      Name: ${name}
-      Email: ${email}
-      Qualification: ${qualification}
-      Specialization: ${specialization}
-      Experience: ${experience}
-      linkedin: ${linkedin}
-    `,
-    attachments: resume
-      ? [
-          {
-            content: fs.readFileSync(resume.path).toString('base64'),
-            filename: resume.originalname,
-            type: resume.mimetype,
-            disposition: 'attachment',
-          },
-        ]
-      : [],
-  };
-
-  const userMsg = {
-    to: email,
-    from: 'Intelliod Careers <yaswanth.intelliod@gmail.com>',
-    subject: `Application Received for ${jobTitle} at Intelliod`,
-    text: `Hello ${name},
-
-Thank you for applying for the position of "${jobTitle}" at Intelliod Private Limited.
-
-We have received your application and our team will review it shortly.
-
-Best regards,
-The Intelliod Private Limited Team
-    `,
-  };
-
   try {
-    await sgMail.send(adminMsg);
-    await sgMail.send(userMsg);
+    console.log("📤 Preparing admin email...");
 
-    fs.unlinkSync(resume.path); // Delete uploaded file after sending
+    // Admin notification email
+    const adminEmail = {
+      to: [{ email: 'intelliod@gmail.com', name: 'Intelliod Careers' }],
+      sender: { email: 'contact@intelliod.com', name: 'Intelliod Careers' },
+      subject: `New Application: ${jobTitle} - ${name}`,
+      htmlContent: `
+        <p><strong>Job Title:</strong> ${jobTitle}</p>
+        <p><strong>Name:</strong> ${name}</p>
+        <p><strong>Email:</strong> ${email}</p>
+        <p><strong>Qualification:</strong> ${qualification}</p>
+        <p><strong>Specialization:</strong> ${specialization}</p>
+        <p><strong>Experience:</strong> ${experience}</p>
+        <p><strong>LinkedIn:</strong> ${linkedin}</p>
+      `,
+      attachment: resume
+        ? [{
+            name: resume.originalname,
+            content: fs.readFileSync(resume.path).toString('base64'),
+          }]
+        : [],
+    };
+
+    await emailApi.sendTransacEmail(adminEmail);
+    console.log("✅ Admin email sent");
+
+    // Confirmation to applicant
+    const userEmail = {
+      to: [{ email, name }],
+      sender: { email: 'contact@intelliod.com', name: 'Intelliod Careers' },
+      subject: `Application Received for ${jobTitle} at Intelliod`,
+      htmlContent: `
+        <p>Hello ${name},</p>
+        <p>Thank you for applying for the position of <strong>${jobTitle}</strong> at Intelliod Private Limited.</p>
+        <p>We have received your application and our team will review it shortly.</p>
+        <p>Best regards,<br/>The Intelliod Team</p>
+      `,
+    };
+
+    await emailApi.sendTransacEmail(userEmail);
+    console.log("✅ User confirmation email sent");
+
+    // Delete uploaded resume
+    if (resume) {
+      fs.unlinkSync(resume.path);
+      console.log("🧹 Resume file deleted");
+    }
 
     res.status(200).json({ success: true, message: 'Application sent successfully' });
   } catch (err) {
-    console.error(err.response?.body || err.message);
+    console.error("❌ Send error:", JSON.stringify(err.response?.body || err.message, null, 2));
+    if (resume && fs.existsSync(resume.path)) fs.unlinkSync(resume.path);
     res.status(500).json({ success: false, message: 'Error sending email' });
   }
 });
 
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
