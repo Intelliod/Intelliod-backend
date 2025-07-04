@@ -37,6 +37,11 @@ app.post('/apply', upload.single('resume'), async (req, res) => {
   try {
     console.log("📤 Preparing admin email...");
 
+    // Extract GitHub links
+    const githubLinks = githubRepos
+      ? githubRepos.split('\n').filter(link => link.trim())
+      : [];
+
     // Admin notification email
     const adminEmail = {
       to: [{ email: 'intelliod@gmail.com', name: 'Intelliod Careers' }],
@@ -50,7 +55,7 @@ app.post('/apply', upload.single('resume'), async (req, res) => {
         <p><strong>Specialization:</strong> ${specialization}</p>
         <p><strong>Experience:</strong> ${experience}</p>
         <p><strong>LinkedIn:</strong> <a href="${linkedin}" target="_blank">${linkedin}</a></p>
-        ${githubRepos ? `<p><strong>GitHub Repos:</strong> <a href="${githubRepos}" target="_blank">${githubRepos}</a></p>` : ''}
+        ${githubLinks.length ? `<p><strong>GitHub Repos:</strong><ul>${githubLinks.map(link => `<li><a href="${link}">${link}</a></li>`).join('')}</ul></p>` : ''}
       `,
       attachment: resume
         ? [{
