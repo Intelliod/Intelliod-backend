@@ -29,6 +29,7 @@ app.post('/apply', upload.single('resume'), async (req, res) => {
     experience,
     jobTitle,
     linkedin,
+    githubRepos
   } = req.body;
 
   const resume = req.file;
@@ -42,13 +43,14 @@ app.post('/apply', upload.single('resume'), async (req, res) => {
       sender: { email: 'contact@intelliod.com', name: 'Intelliod Careers' },
       subject: `New Application: ${jobTitle} - ${name}`,
       htmlContent: `
-        <p><strong>Job Title:</strong> ${jobTitle}</p>
+        <h3>New Job Application for <strong>${jobTitle}</strong></h3>
         <p><strong>Name:</strong> ${name}</p>
         <p><strong>Email:</strong> ${email}</p>
         <p><strong>Qualification:</strong> ${qualification}</p>
         <p><strong>Specialization:</strong> ${specialization}</p>
         <p><strong>Experience:</strong> ${experience}</p>
-        <p><strong>LinkedIn:</strong> ${linkedin}</p>
+        <p><strong>LinkedIn:</strong> <a href="${linkedin}" target="_blank">${linkedin}</a></p>
+        ${githubRepos ? `<p><strong>GitHub Repos:</strong> <a href="${githubRepos}" target="_blank">${githubRepos}</a></p>` : ''}
       `,
       attachment: resume
         ? [{
@@ -78,7 +80,7 @@ app.post('/apply', upload.single('resume'), async (req, res) => {
     console.log("✅ User confirmation email sent");
 
     // Delete uploaded resume
-    if (resume) {
+    if (resume && fs.existsSync(resume.path)) {
       fs.unlinkSync(resume.path);
       console.log("🧹 Resume file deleted");
     }
@@ -90,5 +92,4 @@ app.post('/apply', upload.single('resume'), async (req, res) => {
     res.status(500).json({ success: false, message: 'Error sending email' });
   }
 });
-
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
