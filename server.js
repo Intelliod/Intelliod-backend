@@ -45,7 +45,7 @@ app.post('/apply', upload.single('resume'), async (req, res) => {
     // Admin notification email
     const adminEmail = {
       to: [{ email: 'contact@intelliod.com', name: 'Intelliod Careers' }],
-      sender: { email: 'contact@intelliod.com', name: 'Intelliod Careers' },
+      sender: { email: 'no-reply@intelliod.com', name: 'Intelliod Careers' },
       subject: `New Application: ${jobTitle} - ${name}`,
       htmlContent: `
         <h3>New Job Application for <strong>${jobTitle}</strong></h3>
