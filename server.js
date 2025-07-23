@@ -29,8 +29,12 @@ app.post('/apply', upload.single('resume'), async (req, res) => {
     experience,
     jobTitle,
     linkedin,
-    githubRepos
+    githubRepos,
+    expectedSalary,
+    relocate,
+    noticePeriod
   } = req.body;
+
 
   const resume = req.file;
 
@@ -48,16 +52,26 @@ app.post('/apply', upload.single('resume'), async (req, res) => {
       sender: { email: 'admin@intelliod.com', name: 'Intelliod Careers' },
       replyTo: { email, name },
       subject: `New Application: ${jobTitle} - ${name}`,
-      htmlContent: `
-        <h3>New Job Application for <strong>${jobTitle}</strong></h3>
-        <p><strong>Name:</strong> ${name}</p>
-        <p><strong>Email:</strong> ${email}</p>
-        <p><strong>Qualification:</strong> ${qualification}</p>
-        <p><strong>Specialization:</strong> ${specialization}</p>
-        <p><strong>Experience:</strong> ${experience}</p>
-        <p><strong>LinkedIn:</strong> <a href="${linkedin}" target="_blank">${linkedin}</a></p>
-        ${githubLinks.length ? `<p><strong>GitHub Repos:</strong><ul>${githubLinks.map(link => `<li><a href="${link}">${link}</a></li>`).join('')}</ul></p>` : ''}
-      `,
+     htmlContent: `
+      <h3>New Job Application for <strong>${jobTitle}</strong></h3>
+      <p><strong>Name:</strong> ${name}</p>
+      <p><strong>Email:</strong> ${email}</p>
+      <p><strong>Qualification:</strong> ${qualification}</p>
+      <p><strong>Specialization:</strong> ${specialization}</p>
+      <p><strong>Experience:</strong> ${experience}</p>
+      <p><strong>Expected Salary:</strong> ₹${expectedSalary}</p>
+      <p><strong>Relocate to Vizag:</strong> ${relocate}</p>
+      <p><strong>Notice Period:</strong> ${noticePeriod} days</p>
+      <p><strong>LinkedIn:</strong> <a href="${linkedin}" target="_blank">${linkedin}</a></p>
+      ${
+        githubLinks.length
+          ? `<p><strong>GitHub Repos:</strong><ul>${githubLinks
+              .map(link => `<li><a href="${link}">${link}</a></li>`)
+              .join('')}</ul></p>`
+          : ''
+      }
+    `,
+
       attachment: resume
         ? [{
             name: resume.originalname,
